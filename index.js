@@ -126,6 +126,7 @@ app.post(BASE_URL+"update_deal/", async (req, res) => {
         const dealId = req.body.deal_id;
         const products = req.body.products;
         const assignedPersonalId = req.body.assigned_id;
+        // UF_CRM_1730790163295
 
         const db = new Db();
         const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
@@ -141,7 +142,7 @@ app.post(BASE_URL+"update_deal/", async (req, res) => {
         }
 
         // Update the deal's assigned ID in the external service (Bitrix, etc.)
-        if (await dealsService.updateDeal(dealId, { "ASSIGNED_BY_ID": assignedPersonalId })) {
+        if (await dealsService.updateDeal(dealId, { "UF_CRM_1728999528": assignedPersonalId, "UF_CRM_1730790163295": 1 })) {
             logAccess(BASE_URL + "update_deal/", `Deal ${dealId} successfully updated in bx`);
         }
 
