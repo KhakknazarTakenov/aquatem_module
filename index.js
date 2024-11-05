@@ -47,6 +47,7 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
 
         if (!user.department_ids.includes("45")) {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
+            return;
         }
         const allDeals = await getDealsWithProducts(user.id);
 
@@ -208,6 +209,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
 
         if (!user.department_ids.includes("45")) {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
+            return;
         }
 
         const installationDepartmentMemebers = await db.getInstallationDepartmentMembers();
@@ -274,7 +276,7 @@ app.post(BASE_URL+"register/", async (req, res) => {
             }
         })[0];
         if (user) {
-            const insertResult = db.insertUsersInDb([user]);
+            const insertResult = db.updateUserInDb(user.id, user)
             if (insertResult) {
                 logAccess(BASE_URL+"register/", `User ${user.id} ${user.name} ${user.last_name} successfully added to db`);
                 res.status(200).json({"status": true, "status_msg": "success", "message": `User ${user.id} ${user.name} ${user.last_name} successfully added to db`})

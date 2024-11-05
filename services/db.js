@@ -64,14 +64,20 @@ class Db {
         try {
             db.serialize(() => {
                 const stmt = db.prepare(`
-                    INSERT OR REPLACE INTO users (id, name, last_name, department_ids, password) VALUES (?, ?, ?, ?, ?)
-                `);
+                INSERT INTO users (id, name, last_name, department_ids, password)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    last_name = excluded.last_name,
+                    department_ids = excluded.department_ids
+                WHERE users.id = excluded.id
+            `);
 
                 data.forEach((user) => {
                     // Join the department_ids array into a comma-separated string
                     const departmentIdsString = (user.departments || []).join(',');
 
-                    // Insert user into the users table
+                    // Insert or update user into the users table
                     stmt.run(user.id, user.name, user.last_name, departmentIdsString, user.password);
                 });
 
@@ -85,6 +91,53 @@ class Db {
             db.close();
         }
     }
+
+    updateUserInDb(userId, data) {
+        const db = new sqlite3.Database(this.dbPath);
+        try {
+            db.serialize(() => {
+                // Construct the update query dynamically based on the provided data
+                const updates = [];
+                const params = [];
+
+                // Add fields to update based on provided data
+                if (data.name !== undefined) {
+                    updates.push("name = ?");
+                    params.push(data.name);
+                }
+                if (data.last_name !== undefined) {
+                    updates.push("last_name = ?");
+                    params.push(data.last_name);
+                }
+                if (data.departments !== undefined) {
+                    const departmentIdsString = (data.departments || []).join(',');
+                    updates.push("department_ids = ?");
+                    params.push(departmentIdsString);
+                }
+                if (data.password !== undefined) {
+                    updates.push("password = ?");
+                    params.push(data.password);
+                }
+
+                // Only proceed if there are updates to apply
+                if (updates.length > 0) {
+                    const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+                    params.push(userId); // Add userId to params
+
+                    const stmt = db.prepare(query);
+                    stmt.run(...params); // Spread params into the run method
+                    stmt.finalize();
+                }
+            });
+            return true; // Update was successful
+        } catch (error) {
+            logError("DB service updateUserInDb", error);
+            return false; // Update failed
+        } finally {
+            db.close(); // Ensure the database is closed
+        }
+    }
+
 
     insertDealsInDb(data = []) {
         const db = new sqlite3.Database(this.dbPath);
