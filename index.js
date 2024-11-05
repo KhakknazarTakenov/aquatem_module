@@ -45,7 +45,7 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
         const db = new Db();
         const user = await db.getUserByFullName(initiatorName);
 
-        if (!user.department_ids.includes("45")) {
+        if (!user.department_ids.includes("27")) {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
             return;
         }
