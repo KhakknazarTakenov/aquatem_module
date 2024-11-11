@@ -332,6 +332,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
 
         const db = new Db();
         const dealService = new DealsService(bxLinkDecrypted);
+        const productService = new ProductsService(bxLinkDecrypted);
 
         const newDeal = [(await dealService.getDealById(dealId))].map(deal => {
             return {
@@ -356,11 +357,21 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
 
         const productRows = (await dealService.getDealProductRowsByDealId(dealId)).map(pr => {
             return {
-                "product_id": Number(pr["TYPE"]) === 1 ? pr["PRODUCT_ID"] : Number(pr["TYPE"]) === 4 ? Number(pr["PRODUCT_ID"]) + 2 : null,
+                "product_id": Number(pr["PRODUCT_ID"]),
                 "given_amount": Number(pr["QUANTITY"])
             }
         });
-        const dealProducts = productRows.map(pr => {
+        const products = [];
+        for (let pr of productRows) {
+            const originalProduct = await productService.getOriginalProductId(pr.product_id);
+            products.push(
+                {
+                    given_amount: pr.given_amount,
+                    product_id: originalProduct.parentId.value
+                }
+            );
+        }
+        const dealProducts = products.map(pr => {
             return {
                 "deal_id": dealId,
                 "product_id": pr.product_id,
@@ -566,7 +577,6 @@ app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
 
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
-    await db.clearDealsTable();
     res.status(200).json();
 })
 

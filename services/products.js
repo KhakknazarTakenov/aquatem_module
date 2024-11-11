@@ -52,6 +52,18 @@ class ProductsService {
             return null;
         }
     }
+
+    async getOriginalProductId(offerId) {
+        try {
+            const res = await this.bx.call("catalog.product.offer.get", {
+                id: offerId,
+            })
+            return res.result.offer;
+        } catch (error) {
+            logError("ProductsService getOriginalProductId", error);
+            return null;
+        }
+    }
 }
 
 module.exports = ProductsService;
