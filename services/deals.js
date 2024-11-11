@@ -67,7 +67,6 @@ class DealsService {
 
             return allResults;
         } catch (error) {
-            console.log(dealId)
             logError("ProductsService getDealProductRowsByDealId", error);
             return null;
         }

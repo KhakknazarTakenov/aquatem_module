@@ -138,7 +138,6 @@ class Db {
         }
     }
 
-
     insertDealsInDb(data = []) {
         const db = new sqlite3.Database(this.dbPath);
         try {
@@ -242,6 +241,7 @@ class Db {
                     logAccess("DB Service deleteDealById", `Deal with id ${id} deleted.`);
                 });
             });
+            return true;
         } finally {
             db.close();
         }
@@ -259,6 +259,7 @@ class Db {
                     logAccess("DB Service deleteProductById", `Product with id ${id} deleted.`);
                 });
             });
+            return true;
         } finally {
             db.close();
         }
@@ -554,7 +555,40 @@ class Db {
         }
     }
 
+    deleteDealsProductsRowByDealId(dealId) {
+        const db = new sqlite3.Database(this.dbPath);
+        try {
+            db.serialize(() => {
+                db.run(`DELETE FROM deals_products WHERE deal_id = ?`, [dealId], (err) => {
+                    if (err) {
+                        logError("DB service deleteDealsProductsRowByDealId", err);
+                        return false;
+                    }
+                    logAccess("DB Service deleteDealsProductsRowByDealId", `deals_products with id ${dealId} deleted.`);
+                });
+            });
+            return true;
+        } finally {
+            db.close();
+        }
+    }
 
+    clearDealsTable() {
+        const db = new sqlite3.Database(this.dbPath);
+        try {
+            db.serialize(() => {
+                db.run(`DELETE FROM deals`, [], (err) => {
+                    if (err) {
+                        logError("DB service clearDealsTable", err);
+                        return false;
+                    }
+                    logAccess("DB Service clearDealsTable", `deals table cleared successfully`);
+                });
+            });
+        } finally {
+            db.close();
+        }
+    }
 }
 
 module.exports = Db;

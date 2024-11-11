@@ -93,17 +93,17 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
         const dealsService = new DealsService(bxLinkDecrypted);
         const dealProductsFromDb = await db.getDealsProducts(dealId);
         const productRows = dealProductsFromDb.map(product => {
-            let quantity = 0;
-            if (product.total) {
-                if (product.total < 0) {
-                    quantity = 0;
-                } else {
-                    quantity = product.total
-                }
-            } else {
-                quantity = product.given_amount;
-            }
-            return { "PRODUCT_ID": product.product_id, "QUANTITY": quantity }
+            // let quantity = 0;
+            // if (product.total) {
+            //     if (product.total < 0) {
+            //         quantity = 0;
+            //     } else {
+            //         quantity = product.total
+            //     }
+            // } else {
+            //     quantity = product.given_amount;
+            // }
+            return { "PRODUCT_ID": product.product_id, "QUANTITY": product.fact_amount ? product.fact_amount : product.given_amount }
         })
         if (await dealsService.updateDealProductRows(dealId, productRows)) {
             logAccess(BASE_URL + "set_fact_amount_of_products_in_deal/", `Deal ${dealId} product rows successfully updated in bx`);
@@ -189,6 +189,7 @@ app.post(BASE_URL+"get_products_from_db/", async (req, res) => {
 
         if (!user.department_ids.includes("45")) {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
+            return;
         }
 
         const products = await db.getProducts();
@@ -327,7 +328,6 @@ app.post(BASE_URL+"check_user_permission/", async (req, res) => {
 app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
     try {
         const dealId = req.body["data[FIELDS][ID]"];
-
         const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
 
         const db = new Db();
@@ -346,7 +346,6 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
             res.status(400).json({"status": false, "status_msg": "error", "message": `Deal ${newDeal[0].id} doesn't have assigned id`});
             return;
         }
-        console.log(newDeal)
 
         let insertResult = db.insertDealsInDb(newDeal);
         if (insertResult) {
@@ -357,7 +356,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
 
         const productRows = (await dealService.getDealProductRowsByDealId(dealId)).map(pr => {
             return {
-                "product_id": Number(pr["TYPE"]) === 1 ? pr["ID"] : Number(pr["TYPE"]) === 4 ? Number(pr["ID"]) + 2 : null,
+                "product_id": Number(pr["TYPE"]) === 1 ? pr["PRODUCT_ID"] : Number(pr["TYPE"]) === 4 ? Number(pr["PRODUCT_ID"]) + 2 : null,
                 "given_amount": Number(pr["QUANTITY"])
             }
         });
@@ -472,17 +471,17 @@ app.post(BASE_URL+"get_from_bx_insert_deals_in_db/", async (req, res) => {
         const bxLink = await decryptText(process.env.BX_LINK)
 
         const db = new Db();
-
         const dealsService = new DealsService(bxLink);
         const deals = (await dealsService.getDealsListByFilter(filter)).map(deal => {
-            return {
-                id: deal["ID"],
-                title: deal["TITLE"],
-                date_create: deal["DATE_CREATE"],
-                assigned_id: deal["UF_CRM_1728999528"]
+            if (deal["UF_CRM_1728999528"]) {
+                return {
+                    id: deal["ID"],
+                    title: deal["TITLE"],
+                    date_create: deal["DATE_CREATE"],
+                    assigned_id: deal["UF_CRM_1728999528"]
+                }
             }
-        });
-
+        }).filter(deal => deal !== undefined);
         const insertResult = db.insertDealsInDb(deals);
         if (insertResult) {
             logAccess(BASE_URL+"get_from_bx_insert_deals_in_db/", "Deals successfully added to db");
@@ -538,10 +537,37 @@ app.post(BASE_URL+"get_from_bx_insert_deals_products_in_db/", async (req, res) =
     }
 })
 
+app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
+    try {
+        let id = req.query["ID"];
+        if (!id) {
+            id = req.body["data[FIELDS][ID]"];
+        }
+        if (!id) {
+            logError(BASE_URL+"delete_deal_handler", "No deal id provided")
+            res.status(400).json({"status": false, "status_msg": "error", "message": "No deal id provided"});
+            return;
+        }
+
+        const db = new Db();
+        const deleteDealResult =  db.deleteDealById(id);
+        if (deleteDealResult) {
+            const deleteDealProductsResult = db.deleteDealsProductsRowByDealId(id);
+            if (deleteDealProductsResult) {
+                logAccess(BASE_URL+"delete_deal_handler", `Deal ${id} successfully deleted`)
+                res.status(200).json({"status": true, "status_msg": "success", "message": `Deal ${id} successfully deleted`});
+            }
+        }
+    } catch (error) {
+        logError(BASE_URL+"delete_deal_handler", error)
+        res.status(500).json({"status": false, "status_msg": "error", "message": "server  error"})
+    }
+})
+
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
-    await db.clearDealsProductsTable();
-    res.status(200)
+    await db.clearDealsTable();
+    res.status(200).json();
 })
 
 async function getDealsWithProducts(assigned_id = null) {
@@ -574,8 +600,6 @@ async function getDealsWithProducts(assigned_id = null) {
 
     return dealsWithProducts;
 }
-
-
 
 app.listen(PORT, () => {
     console.log(`Server is running on port: ${PORT}`);
