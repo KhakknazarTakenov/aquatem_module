@@ -28,6 +28,7 @@ class Db {
                     title TEXT,
                     date_create DATE,
                     assigned_id INTEGER,
+                    is_conducted BOOLEAN,
                     FOREIGN KEY (assigned_id) REFERENCES users(id)
                 );
             `);
@@ -301,6 +302,10 @@ class Db {
             if (updatedFields.assigned_id) {
                 fieldsToUpdate.push("assigned_id = ?");
                 values.push(updatedFields.assigned_id);
+            }
+            if (updatedFields.is_conducted) {
+                fieldsToUpdate.push("is_conducted = ?");
+                values.push(updatedFields.is_conducted);
             }
 
             if (fieldsToUpdate.length === 0) {

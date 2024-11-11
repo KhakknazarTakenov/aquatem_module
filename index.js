@@ -109,6 +109,8 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
             logAccess(BASE_URL + "set_fact_amount_of_products_in_deal/", `Deal ${dealId} product rows successfully updated in bx`);
         }
 
+        db.updateDealById(dealId, { "is_conducted": true });
+
         logAccess(BASE_URL + "set_fact_amount_of_products_in_deal/", `Fact amounts successfully updated for deal ${dealId}`);
 
         // Send response back to the client
