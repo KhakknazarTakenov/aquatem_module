@@ -49,7 +49,8 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
             return;
         }
-        const allDeals = await getDealsWithProducts(user.id);
+        const allDeals = (await getDealsWithProducts(user.id)).filter(deal => !deal.is_conducted);
+        // const allDeals = (await getDealsWithProducts(user.id));
 
         res.status(200).json({"status": true, "status_msg": "success", "deals": allDeals});
     } catch (error) {
@@ -73,41 +74,20 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
         const dealId = req.body.deal_id;
         const products = req.body.products; // Expecting an array of { product_id, fact_amount }
 
-        const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
-
         // Loop through each product and update the fact amount in the local database
         for (const product of products) {
             const updateResult = await db.updateDealProductQuantities({
                 deal_id: dealId,
-                product_id: product.product_id,
+                product_id: product.id,
                 fact_amount: product.fact_amount
             });
 
             if (!updateResult) {
-                throw new Error(`Failed to update fact_amount for product ${product.product_id} in deal ${dealId}`);
+                throw new Error(`Failed to update fact_amount for product ${product.id} in deal ${dealId}`);
             }
         }
 
         await new Promise(resolve => setTimeout(resolve, 50));
-
-        const dealsService = new DealsService(bxLinkDecrypted);
-        const dealProductsFromDb = await db.getDealsProducts(dealId);
-        const productRows = dealProductsFromDb.map(product => {
-            // let quantity = 0;
-            // if (product.total) {
-            //     if (product.total < 0) {
-            //         quantity = 0;
-            //     } else {
-            //         quantity = product.total
-            //     }
-            // } else {
-            //     quantity = product.given_amount;
-            // }
-            return { "PRODUCT_ID": product.product_id, "QUANTITY": product.fact_amount ? product.fact_amount : product.given_amount }
-        })
-        if (await dealsService.updateDealProductRows(dealId, productRows)) {
-            logAccess(BASE_URL + "set_fact_amount_of_products_in_deal/", `Deal ${dealId} product rows successfully updated in bx`);
-        }
 
         db.updateDealById(dealId, { "is_conducted": true });
 
@@ -223,6 +203,36 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
 
     } catch(error) {
         logError(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", error);
+        res.status(500).json({"status": false, "status_msg": "error", "message": "server error"});
+    }
+})
+
+app.post(BASE_URL+"approve_deal/", async (req, res) => {
+    try {
+        const initiatorName = req.body.initiator_full_name;
+
+        const db = new Db();
+        const user = await db.getUserByFullName(initiatorName);
+
+        if (!user.department_ids.includes("45")) {
+            res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
+            return;
+        }
+
+        const dealId = req.body.deal_id;
+        const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
+
+        const dealsService = new DealsService(bxLinkDecrypted);
+        const dealProductsFromDb = await db.getDealsProducts(dealId);
+        const productRows = dealProductsFromDb.map(product => {
+            return { "PRODUCT_ID": product.product_id, "QUANTITY": product.fact_amount ? product.fact_amount : product.given_amount }
+        })
+        if (await dealsService.updateDealProductRows(dealId, productRows)) {
+            logAccess(BASE_URL + "set_fact_amount_of_products_in_deal/", `Deal ${dealId} product rows successfully updated in bx`);
+        }
+        res.status(200).json({"status": true, "status_msg": "success", "message": "Product rows successfully updated in BX"})
+    } catch (error) {
+        logError(BASE_URL+"approve_deal/", error);
         res.status(500).json({"status": false, "status_msg": "error", "message": "server error"});
     }
 })
@@ -366,12 +376,25 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
         const products = [];
         for (let pr of productRows) {
             const originalProduct = await productService.getOriginalProductId(pr.product_id);
-            products.push(
-                {
-                    given_amount: pr.given_amount,
-                    product_id: originalProduct.parentId.value
-                }
-            );
+            if (Object.keys(originalProduct).length > 0) {
+                products.push(
+                    {
+                        deal_id: deal.id,
+                        product_id: originalProduct.parentId.value,
+                        given_amount: pr.given_amount,
+                        fact_amount: null
+                    }
+                );
+            } else {
+                products.push(
+                    {
+                        deal_id: deal.id,
+                        product_id: pr.product_id,
+                        given_amount: pr.given_amount,
+                        fact_amount: null
+                    }
+                );
+            }
         }
         const dealProducts = products.map(pr => {
             return {
@@ -516,25 +539,38 @@ app.post(BASE_URL+"get_from_bx_insert_deals_products_in_db/", async (req, res) =
 
         const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
         const dealsService = new DealsService(bxLinkDecrypted);
+        const productService = new ProductsService(bxLinkDecrypted);
 
         let dealProducts = [];
         for (const deal of dealsFromDb) {
             const productRows = (await dealsService.getDealProductRowsByDealId(deal.id)).map(pr => {
                 return {
-                    "product_id": Number(pr["TYPE"]) === 1 || Number(pr["TYPE"]) === 3 ? pr["PRODUCT_ID"] : Number(pr["TYPE"]) === 4 ? Number(pr["PRODUCT_ID"]) - 2 : null,
+                    "product_id": Number(pr["PRODUCT_ID"]),
                     "given_amount": Number(pr["QUANTITY"])
                 }
             });
-            productRows.forEach(pr => {
-                dealProducts.push(
-                    {
-                        "deal_id": deal.id,
-                        "product_id": pr.product_id,
-                        "given_amount": pr.given_amount,
-                        "fact_amount": null
-                    }
-                )
-            })
+            for (let pr of productRows) {
+                const originalProduct = await productService.getOriginalProductId(pr.product_id);
+                if (Object.keys(originalProduct).length > 0) {
+                    dealProducts.push(
+                        {
+                            deal_id: deal.id,
+                            product_id: originalProduct.parentId.value,
+                            given_amount: pr.given_amount,
+                            fact_amount: null
+                        }
+                    );
+                } else {
+                    dealProducts.push(
+                        {
+                            deal_id: deal.id,
+                            product_id: pr.product_id,
+                            given_amount: pr.given_amount,
+                            fact_amount: null
+                        }
+                    );
+                }
+            }
         }
 
         const insertResult = db.insertDealsProductsInDb(dealProducts);

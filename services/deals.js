@@ -52,14 +52,13 @@ class DealsService {
                 res = await this.bx.call("crm.deal.productrows.get",
                     {
                         "id": dealId,
-                        "start": start
                     }
                 )
 
                 total = res.total;
                 start += pageSize;
-
                 allResults.push(...res.result);
+
                 if (res.total < pageSize) {
                     break;
                 }
@@ -67,7 +66,7 @@ class DealsService {
 
             return allResults;
         } catch (error) {
-            logError("ProductsService getDealProductRowsByDealId", error);
+            logError("ProductsService getDealProductRowsByDealId", error + ` DEAL ID - ${dealId}`);
             return null;
         }
     }
