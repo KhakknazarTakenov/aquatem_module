@@ -197,7 +197,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
         }
 
         const installationDepartmentMemebers = await db.getInstallationDepartmentMembers();
-        const allDeals = await getDealsWithProducts();
+        const allDeals = (await getDealsWithProducts()).filter(deal => !deal.is_approved && !deal.is_conducted);
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
 
