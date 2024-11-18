@@ -379,7 +379,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
             if (originalProduct && Object.keys(originalProduct).length > 0) {
                 products.push(
                     {
-                        deal_id: deal.id,
+                        deal_id: dealId,
                         product_id: originalProduct.parentId.value,
                         given_amount: pr.given_amount,
                         fact_amount: null
@@ -388,7 +388,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
             } else {
                 products.push(
                     {
-                        deal_id: deal.id,
+                        deal_id: dealId,
                         product_id: pr.product_id,
                         given_amount: pr.given_amount,
                         fact_amount: null
@@ -615,7 +615,6 @@ app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
 
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
-    await db.updateDealsTable();
     res.status(200).json();
 })
 
