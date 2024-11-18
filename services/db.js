@@ -309,7 +309,7 @@ class Db {
                 values.push(updatedFields.is_conducted);
             }
             if (updatedFields.is_approved) {
-                fieldsToUpdate.push("is_conducted = ?");
+                fieldsToUpdate.push("is_approved = ?");
                 values.push(updatedFields.is_approved);
             }
 
