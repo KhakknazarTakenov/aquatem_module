@@ -49,7 +49,7 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
             return;
         }
-        const allDeals = (await getDealsWithProducts(user.id)).filter(deal => !deal.is_conducted);
+        const allDeals = (await getDealsWithProducts(user.id)).filter(deal => !deal.is_conducted && deal.is_approved);
         // const allDeals = (await getDealsWithProducts(user.id));
 
         res.status(200).json({"status": true, "status_msg": "success", "deals": allDeals});
@@ -116,7 +116,7 @@ app.post(BASE_URL+"update_deal/", async (req, res) => {
         const dealsService = new DealsService(bxLinkDecrypted);
 
         // Update the assigned_personal_id in the deals table
-        const updateResult = db.updateDealById(dealId, { "assigned_id": assignedPersonalId });
+        const updateResult = db.updateDealById(dealId, { "assigned_id": assignedPersonalId, "is_approved": true });
         if (updateResult) {
             logAccess(BASE_URL + "update_deal/", `Deal ${dealId} successfully updated in db`);
         } else {
@@ -351,7 +351,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                 id: deal["ID"],
                 title: deal["TITLE"],
                 date_create: deal["DATE_CREATE"],
-                assigned_id: deal["UF_CRM_1728999528"] || null
+                assigned_id: deal["UF_CRM_1728999528"] || null,
             }
         });
         if (!newDeal[0].assigned_id) {
@@ -376,7 +376,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
         const products = [];
         for (let pr of productRows) {
             const originalProduct = await productService.getOriginalProductId(pr.product_id);
-            if (Object.keys(originalProduct).length > 0) {
+            if (originalProduct && Object.keys(originalProduct).length > 0) {
                 products.push(
                     {
                         deal_id: deal.id,
@@ -615,6 +615,7 @@ app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
 
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
+    await db.updateDealsTable();
     res.status(200).json();
 })
 

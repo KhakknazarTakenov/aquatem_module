@@ -29,6 +29,7 @@ class Db {
                     date_create DATE,
                     assigned_id INTEGER,
                     is_conducted BOOLEAN,
+                    is_approved BOOLEAN,
                     FOREIGN KEY (assigned_id) REFERENCES users(id)
                 );
             `);
@@ -306,6 +307,10 @@ class Db {
             if (updatedFields.is_conducted) {
                 fieldsToUpdate.push("is_conducted = ?");
                 values.push(updatedFields.is_conducted);
+            }
+            if (updatedFields.is_approved) {
+                fieldsToUpdate.push("is_conducted = ?");
+                values.push(updatedFields.is_approved);
             }
 
             if (fieldsToUpdate.length === 0) {
@@ -605,6 +610,23 @@ class Db {
                         return false;
                     }
                     logAccess("DB Service clearProductsTable", `products table cleared successfully`);
+                });
+            });
+        } finally {
+            db.close();
+        }
+    }
+
+    updateDealsTable() {
+        const db = new sqlite3.Database(this.dbPath);
+        try {
+            db.serialize(() => {
+                db.run(`ALTER TABLE deals ADD COLUMN is_approved BOOLEAN;`, [], (err) => {
+                    if (err) {
+                        logError("DB service updateDealsTable", err);
+                        return false;
+                    }
+                    logAccess("DB Service updateDealsTable", `products table cleared successfully`);
                 });
             });
         } finally {
