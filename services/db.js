@@ -30,6 +30,7 @@ class Db {
                     assigned_id INTEGER,
                     is_conducted BOOLEAN,
                     is_approved BOOLEAN,
+                    is_moved BOOLEAN,
                     FOREIGN KEY (assigned_id) REFERENCES users(id)
                 );
             `);
@@ -311,6 +312,10 @@ class Db {
             if (updatedFields.is_approved) {
                 fieldsToUpdate.push("is_approved = ?");
                 values.push(updatedFields.is_approved);
+            }
+            if (updatedFields.is_moved) {
+                fieldsToUpdate.push("is_moved = ?");
+                values.push(updatedFields.is_moved);
             }
 
             if (fieldsToUpdate.length === 0) {

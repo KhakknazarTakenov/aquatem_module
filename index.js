@@ -49,7 +49,7 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
             return;
         }
-        const allDeals = (await getDealsWithProducts(user.id)).filter(deal => !deal.is_conducted && deal.is_approved);
+        const allDeals = (await getDealsWithProducts(user.id)).filter(deal => !deal.is_conducted && deal.is_moved && !deal.is_approved);
         // const allDeals = (await getDealsWithProducts(user.id));
 
         res.status(200).json({"status": true, "status_msg": "success", "deals": allDeals});
@@ -116,7 +116,7 @@ app.post(BASE_URL+"update_deal/", async (req, res) => {
         const dealsService = new DealsService(bxLinkDecrypted);
 
         // Update the assigned_personal_id in the deals table
-        const updateResult = db.updateDealById(dealId, { "assigned_id": assignedPersonalId, "is_approved": true });
+        const updateResult = db.updateDealById(dealId, { "assigned_id": assignedPersonalId, "is_moved": true });
         if (updateResult) {
             logAccess(BASE_URL + "update_deal/", `Deal ${dealId} successfully updated in db`);
         } else {
@@ -197,7 +197,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
         }
 
         const installationDepartmentMemebers = await db.getInstallationDepartmentMembers();
-        const allDeals = (await getDealsWithProducts()).filter(deal => !deal.is_approved && !deal.is_conducted);
+        const allDeals = (await getDealsWithProducts()).filter(deal => !deal.is_moved && !deal.is_conducted && !deal.is_approved);
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
 
@@ -220,7 +220,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_watch_data_panel/", async (req
         }
 
         const installationDepartmentMemebers = await db.getInstallationDepartmentMembers();
-        const allDeals = (await getDealsWithProducts()).filter(deal => deal.is_conducted);
+        const allDeals = (await getDealsWithProducts()).filter(deal => deal.is_conducted && deal.is_moved && !deal.is_approved);
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
 
@@ -244,6 +244,8 @@ app.post(BASE_URL+"approve_deal/", async (req, res) => {
 
         const dealId = req.body.deal_id;
         const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
+
+        db.updateDealById(dealId, { is_approved: true })
 
         const dealsService = new DealsService(bxLinkDecrypted);
         const dealProductsFromDb = await db.getDealsProducts(dealId);
@@ -373,7 +375,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
             return {
                 id: deal["ID"],
                 title: deal["TITLE"],
-                date_create: deal["DATE_CREATE"],
+                date_create: deal["UF_CRM_1728999194580"],
                 assigned_id: deal["UF_CRM_1728999528"] || null,
             }
         });
