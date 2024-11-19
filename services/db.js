@@ -626,7 +626,7 @@ class Db {
         const db = new sqlite3.Database(this.dbPath);
         try {
             db.serialize(() => {
-                db.run(`ALTER TABLE deals ADD COLUMN is_approved BOOLEAN;`, [], (err) => {
+                db.run(`ALTER TABLE deals ADD COLUMN is_moved BOOLEAN;`, [], (err) => {
                     if (err) {
                         logError("DB service updateDealsTable", err);
                         return false;

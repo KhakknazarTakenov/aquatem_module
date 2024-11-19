@@ -640,6 +640,7 @@ app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
 
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
+    db.updateDealsTable();
     res.status(200).json();
 })
 
