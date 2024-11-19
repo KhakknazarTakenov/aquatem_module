@@ -207,6 +207,29 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
     }
 })
 
+app.post(BASE_URL+"get_info_for_warehouse_manager_watch_data_panel/", async (req, res) => {
+    try {
+        const initiatorName = req.body.initiator_full_name;
+
+        const db = new Db();
+        const user = await db.getUserByFullName(initiatorName);
+
+        if (!user.department_ids.includes("45")) {
+            res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
+            return;
+        }
+
+        const installationDepartmentMemebers = await db.getInstallationDepartmentMembers();
+        const allDeals = (await getDealsWithProducts()).filter(deal => deal.is_conducted);
+
+        res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
+
+    } catch(error) {
+        logError(BASE_URL+"get_info_for_warehouse_manager_watch_data_panel/", error);
+        res.status(500).json({"status": false, "status_msg": "error", "message": "server error"});
+    }
+})
+
 app.post(BASE_URL+"approve_deal/", async (req, res) => {
     try {
         const initiatorName = req.body.initiator_full_name;
