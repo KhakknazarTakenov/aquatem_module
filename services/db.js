@@ -3,6 +3,17 @@ const path = require("path");
 const {logAccess} = require("../logger/logger");
 const sqlite3 = require('sqlite3').verbose();
 
+const cities = [
+    {
+        key: "257",
+        value: "Караганда"
+    },
+    {
+        key: "259",
+        value: "Темиртау"
+    }
+]
+
 class Db {
     dbPath = path.resolve(__dirname, '../db/database.db');
 
@@ -17,7 +28,8 @@ class Db {
                     name TEXT,
                     last_name TEXT,
                     department_ids TEXT,  -- Storing department IDs as a comma-separated string
-                    password TEXT
+                    password TEXT,
+                    city TEXT
                 );
             `);
 
@@ -31,6 +43,7 @@ class Db {
                     is_conducted BOOLEAN,
                     is_approved BOOLEAN,
                     is_moved BOOLEAN,
+                    city TEXT,
                     FOREIGN KEY (assigned_id) REFERENCES users(id)
                 );
             `);
@@ -146,11 +159,11 @@ class Db {
         try {
             db.serialize(() => {
                 const stmt = db.prepare(`
-                INSERT OR REPLACE INTO deals (id, title, date_create, assigned_id) VALUES (?, ?, ?, ?)
+                INSERT OR REPLACE INTO deals (id, title, date_create, assigned_id, city) VALUES (?, ?, ?, ?, ?)
             `);
 
                 data.forEach((deal) => {
-                    stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id);
+                    stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id, cities.find(city => Number(city.key) === Number(deal.city)).value);
                 });
 
                 stmt.finalize();
@@ -506,7 +519,7 @@ class Db {
         return new Promise((resolve, reject) => {
             try {
                 db.all(
-                    `SELECT id, name, last_name, department_ids FROM users WHERE department_ids LIKE '%,27,%' 
+                    `SELECT id, name, last_name, department_ids, city FROM users WHERE department_ids LIKE '%,27,%' 
                  OR department_ids LIKE '27,%' 
                  OR department_ids LIKE '%,27' 
                  OR department_ids = '27'`,
@@ -615,23 +628,6 @@ class Db {
                         return false;
                     }
                     logAccess("DB Service clearProductsTable", `products table cleared successfully`);
-                });
-            });
-        } finally {
-            db.close();
-        }
-    }
-
-    updateDealsTable() {
-        const db = new sqlite3.Database(this.dbPath);
-        try {
-            db.serialize(() => {
-                db.run(`ALTER TABLE deals ADD COLUMN is_moved BOOLEAN;`, [], (err) => {
-                    if (err) {
-                        logError("DB service updateDealsTable", err);
-                        return false;
-                    }
-                    logAccess("DB Service updateDealsTable", `products table cleared successfully`);
                 });
             });
         } finally {

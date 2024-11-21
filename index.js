@@ -49,7 +49,9 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
             res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
             return;
         }
-        const allDeals = (await getDealsWithProducts(user.id)).filter(deal => !deal.is_conducted && deal.is_moved && !deal.is_approved);
+        const allDeals = (await getDealsWithProducts(user.id))
+            .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim())
+            .filter(deal => !deal.is_conducted && deal.is_moved && !deal.is_approved);
         // const allDeals = (await getDealsWithProducts(user.id));
 
         res.status(200).json({"status": true, "status_msg": "success", "deals": allDeals});
@@ -156,11 +158,6 @@ app.post(BASE_URL+"update_deal/", async (req, res) => {
     }
 });
 
-/*
-* Добавить хендлер на обновление сделкив в бд по ID.
-* Это не вызовет рекурсию, так как хендлер будет обновлять чисто сделку в бд.
-* */
-
 // Handler for warehouse manager
 app.post(BASE_URL+"get_products_from_db/", async (req, res) => {
     try {
@@ -196,8 +193,10 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
             return;
         }
 
-        const installationDepartmentMemebers = await db.getInstallationDepartmentMembers();
-        const allDeals = (await getDealsWithProducts()).filter(deal => !deal.is_moved && !deal.is_conducted && !deal.is_approved);
+        const installationDepartmentMemebers = (await db.getInstallationDepartmentMembers()).filter(member => member.city.toLowerCase().trim() === user.city.toLowerCase().trim());
+        const allDeals = (await getDealsWithProducts())
+            .filter(deal => !deal.is_moved && !deal.is_conducted && !deal.is_approved)
+            .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim());
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
 
@@ -219,8 +218,10 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_watch_data_panel/", async (req
             return;
         }
 
-        const installationDepartmentMemebers = await db.getInstallationDepartmentMembers();
-        const allDeals = (await getDealsWithProducts()).filter(deal => deal.is_conducted && deal.is_moved && !deal.is_approved);
+        const installationDepartmentMemebers = (await db.getInstallationDepartmentMembers()).filter(member => member.city.toLowerCase().trim() === user.city.toLowerCase().trim());
+        const allDeals = (await getDealsWithProducts())
+            .filter(deal => deal.is_conducted && deal.is_moved && !deal.is_approved)
+            .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim());
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
 
@@ -377,6 +378,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                 title: deal["TITLE"],
                 date_create: deal["UF_CRM_1728999194580"],
                 assigned_id: deal["UF_CRM_1728999528"] || null,
+                city: deal["UF_CRM_1732081124429"] || null,
             }
         });
         if (!newDeal[0].assigned_id) {
@@ -640,7 +642,6 @@ app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
 
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
-    db.updateDealsTable();
     res.status(200).json();
 })
 
