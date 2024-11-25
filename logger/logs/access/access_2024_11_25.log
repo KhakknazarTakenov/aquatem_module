@@ -58,3 +58,9 @@ Message: Deal 655 product rows successfully updated in bx
 25.11.2024, 14:57:33 - Source: DB Service clearProductsTable
 Message: products table cleared successfully
 
+25.11.2024, 15:53:00 - Source: DB Service updateDealsTable
+Message: products table cleared successfully
+
+25.11.2024, 15:53:28 - Source: DB Service updateDealsTable
+Message: products table cleared successfully
+

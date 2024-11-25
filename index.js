@@ -51,7 +51,7 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
         }
         const allDeals = (await getDealsWithProducts(user.id))
             .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim())
-            .filter(deal => !deal.is_conducted && deal.is_moved && !deal.is_approved);
+            .filter(deal => deal.is_moved && !deal.is_approved && !deal.is_approved);
         // const allDeals = (await getDealsWithProducts(user.id));
 
         res.status(200).json({"status": true, "status_msg": "success", "deals": allDeals});
@@ -75,6 +75,12 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
 
         const dealId = req.body.deal_id;
         const products = req.body.products; // Expecting an array of { product_id, fact_amount }
+        const servicePrice = req.body.service_price;
+
+        if(db.updateDealById(dealId, { service_price: servicePrice })) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} service price updated successfully in db`);
+        }
+
 
         // Loop through each product and update the fact amount in the local database
         for (const product of products) {
@@ -94,6 +100,10 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
         const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
 
         const dealsService = new DealsService(bxLinkDecrypted);
+
+        if (await dealsService.updateDeal(dealId, { "UF_CRM_1732531742220": servicePrice })) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} service price updated successfully in bx`);
+        }
 
         const productRows = products.map(product => {
             return { "PRODUCT_ID": product.id, "QUANTITY": product.fact_amount, "PRICE": product.price };
@@ -253,7 +263,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
 
         const installationDepartmentMemebers = (await db.getInstallationDepartmentMembers()).filter(member => member.city.toLowerCase().trim() === user.city.toLowerCase().trim());
         const allDeals = (await getDealsWithProducts())
-            .filter(deal => !deal.is_moved && !deal.is_approved)
+            .filter(deal => !deal.is_moved && !deal.is_approved  && !deal.is_amount_missmatch)
             .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim());
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
@@ -278,7 +288,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_watch_data_panel/", async (req
 
         const installationDepartmentMemebers = (await db.getInstallationDepartmentMembers()).filter(member => member.city.toLowerCase().trim() === user.city.toLowerCase().trim());
         const allDeals = (await getDealsWithProducts())
-            .filter(deal => deal.is_moved && !deal.is_approved)
+            .filter(deal => deal.is_moved && !deal.is_approved && !deal.is_amount_missmatch)
             .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim());
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
@@ -738,7 +748,6 @@ app.post(BASE_URL+"update_deal_handler/", async (req, res) => {
 app.post(BASE_URL+"deny_deal/", async (req ,res) => {
     try {
         const dealId = req.body.deal_id;
-        // UF_CRM_1732524504063
 
         const db = new Db();
         const bxLinkDecrypted = await decryptText(process.env.BX_LINK);

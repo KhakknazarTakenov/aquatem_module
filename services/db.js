@@ -45,6 +45,7 @@ class Db {
                     is_moved BOOLEAN,
                     is_failed BOOLEAN,
                     is_amount_missmatch BOOLEAN,
+                    service_price FLOAT,
                     city TEXT,
                     FOREIGN KEY (assigned_id) REFERENCES users(id)
                 );
@@ -340,6 +341,10 @@ class Db {
             if (updatedFields.is_amount_missmatch) {
                 fieldsToUpdate.push("is_amount_missmatch = ?");
                 values.push(updatedFields.is_amount_missmatch);
+            }
+            if (updatedFields.service_price) {
+                fieldsToUpdate.push("service_price = ?");
+                values.push(updatedFields.service_price);
             }
 
             if (fieldsToUpdate.length === 0) {
@@ -645,7 +650,6 @@ class Db {
             db.close();
         }
     }
-
 }
 
 module.exports = Db;
