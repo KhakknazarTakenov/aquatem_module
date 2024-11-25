@@ -51,7 +51,7 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
         }
         const allDeals = (await getDealsWithProducts(user.id))
             .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim())
-            .filter(deal => deal.is_moved && !deal.is_approved && !deal.is_approved);
+            .filter(deal => deal.is_moved && !deal.is_approved && !deal.is_failed && !deal.is_conducted);
         // const allDeals = (await getDealsWithProducts(user.id));
 
         res.status(200).json({"status": true, "status_msg": "success", "deals": allDeals});
@@ -77,7 +77,7 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
         const products = req.body.products; // Expecting an array of { product_id, fact_amount }
         const servicePrice = req.body.service_price;
 
-        if(db.updateDealById(dealId, { service_price: servicePrice })) {
+        if(db.updateDealById(dealId, { service_price: servicePrice, is_conducted: true })) {
             logAccess(BASE_URL + "update_deal/", `Deal ${dealId} service price updated successfully in db`);
         }
 
@@ -288,7 +288,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_watch_data_panel/", async (req
 
         const installationDepartmentMemebers = (await db.getInstallationDepartmentMembers()).filter(member => member.city.toLowerCase().trim() === user.city.toLowerCase().trim());
         const allDeals = (await getDealsWithProducts())
-            .filter(deal => deal.is_moved && !deal.is_approved && !deal.is_amount_missmatch)
+            .filter(deal => deal.is_moved && !deal.is_approved && !deal.is_amount_missmatch && !deal.is_conducted)
             .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim());
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
@@ -437,6 +437,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                 date_create: deal["UF_CRM_1728999194580"],
                 assigned_id: deal["UF_CRM_1728999528"] || null,
                 city: deal["UF_CRM_1732081124429"] || null,
+                service_price: deal["UF_CRM_1732531742220"] || null,
             }
         });
         if (!newDeal[0].assigned_id) {
@@ -725,6 +726,7 @@ app.post(BASE_URL+"update_deal_handler/", async (req, res) => {
                 date_create: deal["UF_CRM_1728999194580"],
                 assigned_id: deal["UF_CRM_1728999528"] || null,
                 city: deal["UF_CRM_1732081124429"] || null,
+                service_price: deal["UF_CRM_1732531742220"] || null,
             }
         });
         if (!updatedDeal[0].assigned_id) {
