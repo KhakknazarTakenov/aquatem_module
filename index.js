@@ -692,6 +692,49 @@ app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
     }
 })
 
+app.post(BASE_URL + "update_deal_handler/", async (req, res) => {
+    try {
+        let id = req.query["ID"];
+        if (!id) {
+            id = req.body["data[FIELDS][ID]"];
+        }
+        if (!id) {
+            logError(BASE_URL+"update_deal_handler", "No deal id provided")
+            res.status(400).json({"status": false, "status_msg": "error", "message": "No deal id provided"});
+            return;
+        }
+
+        const db = new Db();
+        const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
+        const dealService = new DealsService(bxLinkDecrypted);
+
+        const updatedDeal = [(await dealService.getDealById(id))].map(deal => {
+            return {
+                id: deal["ID"],
+                title: deal["TITLE"],
+                date_create: deal["UF_CRM_1728999194580"],
+                assigned_id: deal["UF_CRM_1728999528"] || null,
+                city: deal["UF_CRM_1732081124429"] || null,
+            }
+        });
+        if (!updatedDeal[0].assigned_id) {
+            logError(BASE_URL+"add_deal_handler", `Deal ${updatedDeal[0].id} doesn't have assigned id`);
+            res.status(400).json({"status": false, "status_msg": "error", "message": `Deal ${updatedDeal[0].id} doesn't have assigned id`});
+            return;
+        }
+        const updateResult = db.updateDealById(id, updatedDeal[0])
+        if (updateResult) {
+            logAccess(BASE_URL + "update_deal_handler/", `Deal ${id} successfully updated in db`);
+        } else {
+            throw new Error(`Error while setting deal ${id} as failed in db`);
+        }
+
+    } catch (error) {
+        logError(BASE_URL+"delete_deal_handler", error)
+        res.status(500).json({"status": false, "status_msg": "error", "message": "server  error"})
+    }
+})
+
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
     res.status(200).json();
