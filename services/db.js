@@ -43,6 +43,7 @@ class Db {
                     is_conducted BOOLEAN,
                     is_approved BOOLEAN,
                     is_moved BOOLEAN,
+                    is_failed BOOLEAN,
                     city TEXT,
                     FOREIGN KEY (assigned_id) REFERENCES users(id)
                 );
@@ -64,6 +65,7 @@ class Db {
                     product_id INTEGER,
                     given_amount REAL,  -- floating point numbers for quantities
                     fact_amount REAL,   -- floating point numbers for quantities
+                    price FLOAT,
                     total REAL GENERATED ALWAYS AS (given_amount - fact_amount) STORED,  -- calculated field
                     FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE CASCADE,
                     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
@@ -209,12 +211,12 @@ class Db {
         try {
             db.serialize(() => {
                 const stmt = db.prepare(`
-                INSERT OR REPLACE INTO deals_products (deal_id, product_id, given_amount, fact_amount) 
-                VALUES (?, ?, ?, ?)
+                INSERT OR REPLACE INTO deals_products (deal_id, product_id, given_amount, fact_amount, price) 
+                VALUES (?, ?, ?, ?, ?)
             `);
 
                 data.forEach((dealProduct) => {
-                    stmt.run(dealProduct.deal_id, dealProduct.product_id, dealProduct.given_amount, dealProduct.fact_amount);
+                    stmt.run(dealProduct.deal_id, dealProduct.product_id, dealProduct.given_amount, dealProduct.fact_amount, dealProduct.price);
                 });
 
                 stmt.finalize();
@@ -329,6 +331,10 @@ class Db {
             if (updatedFields.is_moved) {
                 fieldsToUpdate.push("is_moved = ?");
                 values.push(updatedFields.is_moved);
+            }
+            if (updatedFields.is_failed) {
+                fieldsToUpdate.push("is_failed = ?");
+                values.push(updatedFields.is_failed);
             }
 
             if (fieldsToUpdate.length === 0) {

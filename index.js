@@ -91,7 +91,19 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
 
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        db.updateDealById(dealId, { "is_conducted": true });
+        const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
+
+        const dealsService = new DealsService(bxLinkDecrypted);
+
+        const productRows = products.map(product => {
+            return { "PRODUCT_ID": product.id, "QUANTITY": product.fact_amount, "PRICE": product.price };
+        });
+
+        if (await dealsService.updateDealProductRows(dealId, productRows)) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} product rows successfully updated in bx`);
+        }  else {
+            throw new Error(`Error while updating product rows for deal ${dealId} in bx`);
+        }
 
         logAccess(BASE_URL + "set_fact_amount_of_products_in_deal/", `Fact amounts successfully updated for deal ${dealId}`);
 
@@ -100,6 +112,52 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
 
     } catch (error) {
         logError(BASE_URL + "set_fact_amount_of_products_in_deal/", error);
+        res.status(500).json({ "status": false, "status_msg": "error", "message": "server error" });
+    }
+});
+
+// Handler for intallation team members
+app.post(BASE_URL+"set_deal_as_failed/", async (req, res) => {
+    try {
+        const initiatorName = req.body.initiator_full_name;
+
+        const db = new Db();
+        const user = await db.getUserByFullName(initiatorName);
+
+        if (!user.department_ids.includes("27")) {
+            res.status(403).json({"status": false, "status_msg": "access_denied", "message": "User not allowed"});
+        }
+
+        const dealId = req.body.deal_id;
+        const deal = (await getDealsWithProducts(user.id)).filter(deal => deal.id === dealId)[0];
+
+        const updateResult = db.updateDealById(dealId, {"is_failed": true});
+
+        if (updateResult) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} successfully updated in db`);
+        } else {
+            throw new Error(`Error while setting deal ${dealId} as failed in db`);
+        }
+
+        const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
+        const dealsService = new DealsService(bxLinkDecrypted);
+        if (await dealsService.updateDeal(dealId, { "UF_CRM_1732283590096": 1 })) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} successfully updated in bx. Deal set as failed`);
+        }
+        const productRows = deal.products.map(product => {
+            return { "PRODUCT_ID": product.id, "QUANTITY": product.given_amount, "PRICE": product.price };
+        });
+
+        if (await dealsService.updateDealProductRows(dealId, productRows)) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} product rows successfully updated in bx`);
+        }  else {
+            throw new Error(`Error while updating product rows for deal ${dealId} in bx`);
+        }
+
+        res.status(200).json({ "status": true, "status_msg": "success", "message": "Deal and products successfully updated" });
+
+    } catch (error) {
+        logError(BASE_URL+"set_deal_as_failed/", error);
         res.status(500).json({ "status": false, "status_msg": "error", "message": "server error" });
     }
 });
@@ -132,7 +190,7 @@ app.post(BASE_URL+"update_deal/", async (req, res) => {
 
         // Prepare the product rows for the external service
         const productRows = products.map(product => {
-            return { "PRODUCT_ID": product.id, "QUANTITY": product.given_amount };
+            return { "PRODUCT_ID": product.id, "QUANTITY": product.given_amount, "PRICE": product.price };
         });
 
         if (await dealsService.updateDealProductRows(dealId, productRows)) {
@@ -195,7 +253,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_fill_data_panel/", async (req,
 
         const installationDepartmentMemebers = (await db.getInstallationDepartmentMembers()).filter(member => member.city.toLowerCase().trim() === user.city.toLowerCase().trim());
         const allDeals = (await getDealsWithProducts())
-            .filter(deal => !deal.is_moved && !deal.is_conducted && !deal.is_approved)
+            .filter(deal => !deal.is_moved && !deal.is_approved)
             .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim());
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
@@ -220,7 +278,7 @@ app.post(BASE_URL+"get_info_for_warehouse_manager_watch_data_panel/", async (req
 
         const installationDepartmentMemebers = (await db.getInstallationDepartmentMembers()).filter(member => member.city.toLowerCase().trim() === user.city.toLowerCase().trim());
         const allDeals = (await getDealsWithProducts())
-            .filter(deal => deal.is_conducted && deal.is_moved && !deal.is_approved)
+            .filter(deal => deal.is_moved && !deal.is_approved)
             .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim());
 
         res.status(200).json({"status": true, "status_msg": "success", "data": {"installation_department_memebers": installationDepartmentMemebers, "all_deals": allDeals}})
@@ -244,18 +302,8 @@ app.post(BASE_URL+"approve_deal/", async (req, res) => {
         }
 
         const dealId = req.body.deal_id;
-        const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
 
         db.updateDealById(dealId, { is_approved: true })
-
-        const dealsService = new DealsService(bxLinkDecrypted);
-        const dealProductsFromDb = await db.getDealsProducts(dealId);
-        const productRows = dealProductsFromDb.map(product => {
-            return { "PRODUCT_ID": product.product_id, "QUANTITY": product.fact_amount ? product.fact_amount : product.given_amount }
-        })
-        if (await dealsService.updateDealProductRows(dealId, productRows)) {
-            logAccess(BASE_URL + "set_fact_amount_of_products_in_deal/", `Deal ${dealId} product rows successfully updated in bx`);
-        }
         res.status(200).json({"status": true, "status_msg": "success", "message": "Product rows successfully updated in BX"})
     } catch (error) {
         logError(BASE_URL+"approve_deal/", error);
@@ -397,7 +445,8 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
         const productRows = (await dealService.getDealProductRowsByDealId(dealId)).map(pr => {
             return {
                 "product_id": Number(pr["PRODUCT_ID"]),
-                "given_amount": Number(pr["QUANTITY"])
+                "given_amount": Number(pr["QUANTITY"]),
+                "price": Number(pr["PRICE"])
             }
         });
         const products = [];
@@ -409,7 +458,8 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                         deal_id: dealId,
                         product_id: originalProduct.parentId.value,
                         given_amount: pr.given_amount,
-                        fact_amount: null
+                        fact_amount: null,
+                        price: pr.price
                     }
                 );
             } else {
@@ -418,7 +468,8 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                         deal_id: dealId,
                         product_id: pr.product_id,
                         given_amount: pr.given_amount,
-                        fact_amount: null
+                        fact_amount: null,
+                        price: pr.price
                     }
                 );
             }
@@ -428,7 +479,8 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                 "deal_id": dealId,
                 "product_id": pr.product_id,
                 "given_amount": pr.given_amount,
-                "fact_amount": null
+                "fact_amount": null,
+                "price": pr.price,
             }
         })
 
@@ -665,7 +717,8 @@ async function getDealsWithProducts(assigned_id = null) {
                     name: product.name,
                     given_amount: dp.given_amount,
                     fact_amount: dp.fact_amount,
-                    total: dp.total
+                    total: dp.total,
+                    price: dp.price
                 };
             })
             .filter(product => product !== null); // Remove null entries

@@ -1,0 +1,57 @@
+25.11.2024, 11:54:01 - Source: DB Service updateDealsTable
+Message: products table cleared successfully
+
+25.11.2024, 12:06:49 - Source: /montajniki/add_deal_handler
+Message: Deal 653 successfully added to db
+
+25.11.2024, 12:06:50 - Source: /montajniki/add_deal_handler/
+Message: Product rows for deal 653 successfully added to db
+
+25.11.2024, 12:25:21 - Source: DB Service updateDealsTable
+Message: products table cleared successfully
+
+25.11.2024, 12:26:44 - Source: DB Service updateDealsTable
+Message: products table cleared successfully
+
+25.11.2024, 12:29:58 - Source: /montajniki/delete_deal_handler
+Message: Deal 653 successfully deleted
+
+25.11.2024, 12:29:58 - Source: DB Service deleteDealById
+Message: Deal with id 653 deleted.
+
+25.11.2024, 12:29:58 - Source: DB Service deleteDealsProductsRowByDealId
+Message: deals_products with id 653 deleted.
+
+25.11.2024, 12:51:15 - Source: /montajniki/add_deal_handler
+Message: Deal 655 successfully added to db
+
+25.11.2024, 12:51:16 - Source: /montajniki/add_deal_handler/
+Message: Product rows for deal 655 successfully added to db
+
+25.11.2024, 12:54:46 - Source: /montajniki/add_deal_handler
+Message: Deal 659 successfully added to db
+
+25.11.2024, 12:54:46 - Source: /montajniki/add_deal_handler/
+Message: Product rows for deal 659 successfully added to db
+
+25.11.2024, 12:55:32 - Source: /montajniki/update_deal/
+Message: Deal 655 successfully updated in db
+
+25.11.2024, 12:55:32 - Source: DB Service updateDealById
+Message: Deal with id 655 updated successfully.
+
+25.11.2024, 12:55:34 - Source: /montajniki/update_deal/
+Message: Deal 655 successfully updated in bx. Deal set as failed
+
+25.11.2024, 12:58:23 - Source: /montajniki/update_deal/
+Message: Deal 655 successfully updated in db
+
+25.11.2024, 12:58:23 - Source: DB Service updateDealById
+Message: Deal with id 655 updated successfully.
+
+25.11.2024, 12:58:24 - Source: /montajniki/update_deal/
+Message: Deal 655 successfully updated in bx. Deal set as failed
+
+25.11.2024, 12:58:24 - Source: /montajniki/update_deal/
+Message: Deal 655 product rows successfully updated in bx
+

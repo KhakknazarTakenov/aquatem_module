@@ -1,0 +1,11 @@
+25.11.2024, 12:26:32 - Source: DB service updateDealsTable
+Error: Error: SQLITE_ERROR: near "DELETE": syntax error
+
+25.11.2024, 12:52:51 - Source: /montajniki/add_deal_handler
+Error: Deal 657 doesn't have assigned id
+
+25.11.2024, 12:55:34 - Source: /montajniki/set_deal_as_failed/
+Error: TypeError: Cannot read properties of undefined (reading 'map')
+    at C:\Users\xaker\WebstormProjects\montajniki\index.js:135:43
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
