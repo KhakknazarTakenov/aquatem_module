@@ -692,7 +692,7 @@ app.post(BASE_URL+"delete_deal_handler", async (req,res) => {
     }
 })
 
-app.post(BASE_URL + "update_deal_handler/", async (req, res) => {
+app.post(BASE_URL+"update_deal_handler/", async (req, res) => {
     try {
         let id = req.query["ID"];
         if (!id) {
@@ -732,6 +732,38 @@ app.post(BASE_URL + "update_deal_handler/", async (req, res) => {
     } catch (error) {
         logError(BASE_URL+"delete_deal_handler", error)
         res.status(500).json({"status": false, "status_msg": "error", "message": "server  error"})
+    }
+})
+
+app.post(BASE_URL+"deny_deal/", async (req ,res) => {
+    try {
+        const dealId = req.body.deal_id;
+        // UF_CRM_1732524504063
+
+        const db = new Db();
+        const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
+
+        const dealsService = new DealsService(bxLinkDecrypted);
+
+        // Update the assigned_personal_id in the deals table
+        const updateResult = db.updateDealById(dealId, { "is_amount_missmatch": 1 });
+        if (updateResult) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} successfully updated in db`);
+        } else {
+            throw new Error(`Error while updating deal ${dealId} in db`);
+        }
+
+        // Update the deal's assigned ID in the external service (Bitrix, etc.)
+        if (await dealsService.updateDeal(dealId, { "UF_CRM_1732524504063": 1 })) {
+            logAccess(BASE_URL + "update_deal/", `Deal ${dealId} successfully updated in bx`);
+        }
+
+        // Send response back to the client
+        res.status(200).json({ "status": true, "status_msg": "success", "message": "Deal and products successfully updated" });
+
+    } catch (error) {
+        logError(BASE_URL + "update_deal/", error);
+        res.status(500).json({ "status": false, "status_msg": "error", "message": "server error" });
     }
 })
 

@@ -55,3 +55,6 @@ Message: Deal 655 successfully updated in bx. Deal set as failed
 25.11.2024, 12:58:24 - Source: /montajniki/update_deal/
 Message: Deal 655 product rows successfully updated in bx
 
+25.11.2024, 14:57:33 - Source: DB Service clearProductsTable
+Message: products table cleared successfully
+
