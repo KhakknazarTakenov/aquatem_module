@@ -712,6 +712,7 @@ app.post(BASE_URL+"update_deal_handler/", async (req, res) => {
         const db = new Db();
         const bxLinkDecrypted = await decryptText(process.env.BX_LINK);
         const dealService = new DealsService(bxLinkDecrypted);
+        const productService = new ProductsService(bxLinkDecrypted);
 
         const updatedDeal = [(await dealService.getDealById(id))].map(deal => {
             return {
@@ -723,17 +724,63 @@ app.post(BASE_URL+"update_deal_handler/", async (req, res) => {
                 service_price: deal["UF_CRM_1732531742220"] || null,
             }
         });
-        if (!updatedDeal[0].assigned_id) {
-            logError(BASE_URL+"add_deal_handler", `Deal ${updatedDeal[0].id} doesn't have assigned id`);
-            res.status(400).json({"status": false, "status_msg": "error", "message": `Deal ${updatedDeal[0].id} doesn't have assigned id`});
-            return;
-        }
         const updateResult = db.updateDealById(id, updatedDeal[0])
         if (updateResult) {
             logAccess(BASE_URL + "update_deal_handler/", `Deal ${id} successfully updated in db`);
         } else {
             throw new Error(`Error while setting deal ${id} as failed in db`);
         }
+
+        const productRows = (await dealService.getDealProductRowsByDealId(id)).map(pr => {
+            return {
+                "product_id": Number(pr["PRODUCT_ID"]),
+                "given_amount": Number(pr["QUANTITY"]),
+                "price": Number(pr["PRICE"])
+            }
+        });
+        const products = [];
+        for (let pr of productRows) {
+            const originalProduct = await productService.getOriginalProductId(pr.product_id);
+            if (originalProduct && Object.keys(originalProduct).length > 0) {
+                products.push(
+                    {
+                        deal_id: id,
+                        product_id: originalProduct.parentId.value,
+                        given_amount: pr.given_amount,
+                        fact_amount: null,
+                        price: pr.price
+                    }
+                );
+            } else {
+                products.push(
+                    {
+                        deal_id: id,
+                        product_id: pr.product_id,
+                        given_amount: pr.given_amount,
+                        fact_amount: null,
+                        price: pr.price
+                    }
+                );
+            }
+        }
+        const dealProducts = products.map(pr => {
+            return {
+                "deal_id": id,
+                "product_id": pr.product_id,
+                "given_amount": pr.given_amount,
+                "fact_amount": null,
+                "price": pr.price,
+            }
+        })
+
+        const insertResult = db.insertDealsProductsInDb(dealProducts);
+        if (insertResult) {
+            logAccess(BASE_URL+"add_deal_handler/", `Product rows for deal ${id} successfully updated in db`);
+        } else {
+            throw new Error(`Error while updating product rows for deal ${id} in db`)
+        }
+
+        res.status(200).json({"status": true, "status_msg": "success", "message": `Сделка ${id} успешно обновлена`})
 
     } catch (error) {
         logError(BASE_URL+"delete_deal_handler", error)
