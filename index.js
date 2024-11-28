@@ -440,7 +440,7 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                     service_price: deal["UF_CRM_1732531742220"] || null,
                 }
             }
-        });
+        }).filter(deal => deal !== undefined);
 
         let insertResult = db.insertDealsInDb(newDeal);
         if (insertResult) {
