@@ -1,0 +1,28 @@
+28.11.2024, 16:17:10 - Source: DB service insertDealsInDb
+Error: TypeError: Cannot read properties of undefined (reading 'id')
+    at C:\Users\xaker\WebstormProjects\montajniki\services\db.js:174:35
+    at Array.forEach (<anonymous>)
+    at Database.<anonymous> (C:\Users\xaker\WebstormProjects\montajniki\services\db.js:173:22)
+    at Db.insertDealsInDb (C:\Users\xaker\WebstormProjects\montajniki\services\db.js:168:16)
+    at C:\Users\xaker\WebstormProjects\montajniki\index.js:610:33
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+28.11.2024, 16:17:10 - Source: /montajniki/get_from_bx_insert_deals_in_db/
+Error: Error: Error while adding deals in db
+    at C:\Users\xaker\WebstormProjects\montajniki\index.js:615:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+28.11.2024, 16:17:52 - Source: DB service insertDealsInDb
+Error: TypeError: Cannot read properties of undefined (reading 'id')
+    at C:\Users\xaker\WebstormProjects\montajniki\services\db.js:174:35
+    at Array.forEach (<anonymous>)
+    at Database.<anonymous> (C:\Users\xaker\WebstormProjects\montajniki\services\db.js:173:22)
+    at Db.insertDealsInDb (C:\Users\xaker\WebstormProjects\montajniki\services\db.js:168:16)
+    at C:\Users\xaker\WebstormProjects\montajniki\index.js:611:33
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+
+28.11.2024, 16:17:52 - Source: /montajniki/get_from_bx_insert_deals_in_db/
+Error: Error: Error while adding deals in db
+    at C:\Users\xaker\WebstormProjects\montajniki\index.js:616:19
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+

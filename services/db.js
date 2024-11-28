@@ -11,6 +11,10 @@ const cities = [
     {
         key: "259",
         value: "Темиртау"
+    },
+    {
+        key: "889",
+        value: "Материал от клиента"
     }
 ]
 
@@ -167,7 +171,7 @@ class Db {
             `);
 
                 data.forEach((deal) => {
-                    stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id, cities.find(city => Number(city.key) === Number(deal.city)).value, deal.service_price);
+                    stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id, cities.find(city => Number(city.key) === Number(deal.city))?.value, deal.service_price);
                 });
 
                 stmt.finalize();
@@ -212,10 +216,10 @@ class Db {
         const db = new sqlite3.Database(this.dbPath);
         try {
             db.serialize(() => {
-                const stmt = db.prepare(`
-                INSERT OR REPLACE INTO deals_products (deal_id, product_id, given_amount, fact_amount, price) 
-                VALUES (?, ?, ?, ?, ?)
-            `);
+                    const stmt = db.prepare(`
+                    INSERT OR REPLACE INTO deals_products (deal_id, product_id, given_amount, fact_amount, price) 
+                    VALUES (?, ?, ?, ?, ?)
+                `);
 
                 data.forEach((dealProduct) => {
                     stmt.run(dealProduct.deal_id, dealProduct.product_id, dealProduct.given_amount, dealProduct.fact_amount, dealProduct.price);

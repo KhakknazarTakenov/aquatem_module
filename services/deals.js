@@ -20,7 +20,7 @@ class DealsService {
             do {
                 res = await this.bx.deals.list(
                     {
-                        "select": ["ID", "TITLE", "DATE_CREATE", "UF_CRM_1728999528"],
+                        "select": ["ID", "TITLE", "CATEGORY_ID", "UF_CRM_1728999194580", "UF_CRM_1728999528", "UF_CRM_1732081124429", "UF_CRM_1732531742220"],
                         "filter": filter,
                         "start": start
                     }

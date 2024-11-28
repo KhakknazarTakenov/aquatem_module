@@ -430,13 +430,15 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
         const productService = new ProductsService(bxLinkDecrypted);
 
         const newDeal = [(await dealService.getDealById(dealId))].map(deal => {
-            return {
-                id: deal["ID"],
-                title: deal["TITLE"],
-                date_create: deal["UF_CRM_1728999194580"],
-                assigned_id: deal["UF_CRM_1728999528"] || null,
-                city: deal["UF_CRM_1732081124429"] || null,
-                service_price: deal["UF_CRM_1732531742220"] || null,
+            if (Number(deal["CATEGORY_ID"]) === 0) {
+                return {
+                    id: deal["ID"],
+                    title: deal["TITLE"],
+                    date_create: deal["UF_CRM_1728999194580"],
+                    assigned_id: deal["UF_CRM_1728999528"] || null,
+                    city: deal["UF_CRM_1732081124429"] || null,
+                    service_price: deal["UF_CRM_1732531742220"] || null,
+                }
             }
         });
 
@@ -593,12 +595,14 @@ app.post(BASE_URL+"get_from_bx_insert_deals_in_db/", async (req, res) => {
         const db = new Db();
         const dealsService = new DealsService(bxLink);
         const deals = (await dealsService.getDealsListByFilter(filter)).map(deal => {
-            if (deal["UF_CRM_1728999528"]) {
+            if (Number(deal["CATEGORY_ID"]) === 0) {
                 return {
                     id: deal["ID"],
                     title: deal["TITLE"],
-                    date_create: deal["DATE_CREATE"],
-                    assigned_id: deal["UF_CRM_1728999528"]
+                    date_create: deal["UF_CRM_1728999194580"],
+                    assigned_id: deal["UF_CRM_1728999528"] || null,
+                    city: deal["UF_CRM_1732081124429"] || null,
+                    service_price: deal["UF_CRM_1732531742220"] || null,
                 }
             }
         }).filter(deal => deal !== undefined);
@@ -821,6 +825,7 @@ app.post(BASE_URL+"deny_deal/", async (req ,res) => {
 
 app.post(BASE_URL+"tmp/", async (req, res) => {
     const db = new Db();
+    db.clearDealsTable()
     res.status(200).json();
 })
 

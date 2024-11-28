@@ -1,0 +1,21 @@
+28.11.2024, 16:14:19 - Source: DB Service clearDealsTable
+Message: deals table cleared successfully
+
+28.11.2024, 16:15:14 - Source: /montajniki/get_from_bx_insert_deals_products_in_db/
+Message: DealProducts successfully added to db
+
+28.11.2024, 16:15:45 - Source: /montajniki/get_from_bx_insert_deals_products_in_db/
+Message: DealProducts successfully added to db
+
+28.11.2024, 16:16:01 - Source: /montajniki/get_from_bx_insert_deals_in_db/
+Message: Deals successfully added to db
+
+28.11.2024, 16:16:24 - Source: /montajniki/get_from_bx_insert_deals_in_db/
+Message: Deals successfully added to db
+
+28.11.2024, 16:16:45 - Source: /montajniki/get_from_bx_insert_deals_in_db/
+Message: Deals successfully added to db
+
+28.11.2024, 16:18:51 - Source: /montajniki/get_from_bx_insert_deals_in_db/
+Message: Deals successfully added to db
+
