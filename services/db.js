@@ -163,11 +163,11 @@ class Db {
         try {
             db.serialize(() => {
                 const stmt = db.prepare(`
-                INSERT OR REPLACE INTO deals (id, title, date_create, assigned_id, city) VALUES (?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO deals (id, title, date_create, assigned_id, city, service_price) VALUES (?, ?, ?, ?, ?, ?)
             `);
 
                 data.forEach((deal) => {
-                    stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id, cities.find(city => Number(city.key) === Number(deal.city)).value);
+                    stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id, cities.find(city => Number(city.key) === Number(deal.city)).value, deal.service_price);
                 });
 
                 stmt.finalize();

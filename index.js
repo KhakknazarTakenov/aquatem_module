@@ -50,7 +50,6 @@ app.post(BASE_URL+"get_deals_with_products/", async (req, res) => {
             return;
         }
         const allDeals = (await getDealsWithProducts(user.id))
-            .filter(deal => deal.city.toLowerCase().trim() === user.city.toLowerCase().trim())
             .filter(deal => deal.is_moved && !deal.is_approved && !deal.is_failed && !deal.is_conducted);
         // const allDeals = (await getDealsWithProducts(user.id));
 
@@ -440,11 +439,6 @@ app.post(BASE_URL+"add_deal_handler/", async (req, res) => {
                 service_price: deal["UF_CRM_1732531742220"] || null,
             }
         });
-        if (!newDeal[0].assigned_id) {
-            logError(BASE_URL+"add_deal_handler", `Deal ${newDeal[0].id} doesn't have assigned id`);
-            res.status(400).json({"status": false, "status_msg": "error", "message": `Deal ${newDeal[0].id} doesn't have assigned id`});
-            return;
-        }
 
         let insertResult = db.insertDealsInDb(newDeal);
         if (insertResult) {
