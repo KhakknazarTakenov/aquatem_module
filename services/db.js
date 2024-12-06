@@ -167,8 +167,8 @@ class Db {
         try {
             db.serialize(() => {
                 const stmt = db.prepare(`
-                INSERT OR REPLACE INTO deals (id, title, date_create, assigned_id, city, service_price) VALUES (?, ?, ?, ?, ?, ?)
-            `);
+                    INSERT OR REPLACE INTO deals (id, title, date_create, assigned_id, city, service_price) VALUES (?, ?, ?, ?, ?, ?)
+                `);
 
                 data.forEach((deal) => {
                     stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id, cities.find(city => Number(city.key) === Number(deal.city))?.value, deal.service_price);
@@ -413,7 +413,7 @@ class Db {
         const db = new sqlite3.Database(this.dbPath);
         return new Promise((resolve, reject) => {
             try {
-                let statement = `SELECT * FROM deals`;
+                let statement = `SELECT * FROM deals where`;
                 const params = [];
 
                 if (assigned_id !== null) {
@@ -487,7 +487,7 @@ class Db {
         });
     }
 
-    async updateDealProductQuantities({ deal_id = null, product_id = null, fact_amount }) {
+    async updateDealProductQuantities({ deal_id = null, product_id = null, fact_amount, given_amount }) {
         const db = new sqlite3.Database(this.dbPath);
 
         try {
@@ -497,7 +497,7 @@ class Db {
             }
 
             const conditions = [];
-            const values = [fact_amount];  // Fact amount will be updated
+            const values = [fact_amount, given_amount];  // Fact amount will be updated
 
             // Add condition based on deal_id and product_id
             if (deal_id) {
@@ -511,7 +511,7 @@ class Db {
 
             const sql = `
                 UPDATE deals_products
-                SET fact_amount = ?
+                SET fact_amount = ?, given_amount = ?
                 WHERE ${conditions.join(" AND ")}
             `;
 
@@ -654,6 +654,31 @@ class Db {
             db.close();
         }
     }
+
+    getDealMaxId() {
+        const db = new sqlite3.Database(this.dbPath);
+        return new Promise(async (resolve, reject) => {
+            try {
+                db.get(
+                    `SELECT MAX(id) AS max_id FROM deals`,
+                    (err, row) => {
+                        if (err) {
+                            logError("DB service getDealMaxId", err);
+                            reject(err);
+                        } else {
+                            resolve(row || null);
+                        }
+                    }
+                );
+            } catch (error) {
+                logError("DB service getDeals", error);
+                return null;
+            } finally {
+                db.close();
+            }
+        });
+    }
+
 }
 
 module.exports = Db;

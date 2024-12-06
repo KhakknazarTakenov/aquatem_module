@@ -86,7 +86,8 @@ app.post(BASE_URL+"set_fact_amount_of_products_in_deal/", async (req, res) => {
             const updateResult = await db.updateDealProductQuantities({
                 deal_id: dealId,
                 product_id: product.id,
-                fact_amount: product.fact_amount
+                fact_amount: product.fact_amount,
+                given_amount: product.given_amount
             });
 
             if (!updateResult) {
@@ -199,7 +200,7 @@ app.post(BASE_URL+"update_deal/", async (req, res) => {
 
         // Prepare the product rows for the external service
         const productRows = products.map(product => {
-            return { "PRODUCT_ID": product.id, "QUANTITY": product.given_amount, "PRICE": product.price };
+            return { "PRODUCT_ID": product.id+2, "QUANTITY": product.given_amount, "PRICE": product.price };
         });
 
         if (await dealsService.updateDealProductRows(dealId, productRows)) {
@@ -588,11 +589,14 @@ app.post(BASE_URL+"get_from_bx_insert_products_in_db/", async (req, res) => {
 
 app.post(BASE_URL+"get_from_bx_insert_deals_in_db/", async (req, res) => {
     try {
-        const filter = req.body.filter;
+        const filter = req.body.filter || {};
 
         const bxLink = await decryptText(process.env.BX_LINK)
 
         const db = new Db();
+
+        filter[">ID"] = (await db.getDealMaxId()).max_id;
+
         const dealsService = new DealsService(bxLink);
         const deals = (await dealsService.getDealsListByFilter(filter)).map(deal => {
             if (Number(deal["CATEGORY_ID"]) === 0) {
@@ -736,10 +740,12 @@ app.post(BASE_URL+"update_deal_handler/", async (req, res) => {
         }
 
         const productRows = (await dealService.getDealProductRowsByDealId(id)).map(pr => {
-            return {
-                "product_id": Number(pr["PRODUCT_ID"]),
-                "given_amount": Number(pr["QUANTITY"]),
-                "price": Number(pr["PRICE"])
+            if (Number(pr["QUANTITY"]) !== 0) {
+                return {
+                    "product_id": Number(pr["PRODUCT_ID"]),
+                    "given_amount": Number(pr["QUANTITY"]),
+                    "price": Number(pr["PRICE"])
+                }
             }
         });
         const products = [];
@@ -779,7 +785,7 @@ app.post(BASE_URL+"update_deal_handler/", async (req, res) => {
 
         const insertResult = db.insertDealsProductsInDb(dealProducts);
         if (insertResult) {
-            logAccess(BASE_URL+"add_deal_handler/", `Product rows for deal ${id} successfully updated in db`);
+            logAccess(BASE_URL+"update_deal_handler/", `Product rows for deal ${id} successfully updated in db`);
         } else {
             throw new Error(`Error while updating product rows for deal ${id} in db`)
         }
@@ -824,9 +830,7 @@ app.post(BASE_URL+"deny_deal/", async (req ,res) => {
 })
 
 app.post(BASE_URL+"tmp/", async (req, res) => {
-    const db = new Db();
-    db.clearDealsTable()
-    res.status(200).json();
+    res.status(200).json({});
 })
 
 async function getDealsWithProducts(assigned_id = null) {
