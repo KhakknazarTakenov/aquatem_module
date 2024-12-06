@@ -413,7 +413,7 @@ class Db {
         const db = new sqlite3.Database(this.dbPath);
         return new Promise((resolve, reject) => {
             try {
-                let statement = `SELECT * FROM deals where`;
+                let statement = `SELECT * FROM deals`;
                 const params = [];
 
                 if (assigned_id !== null) {
