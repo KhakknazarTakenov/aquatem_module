@@ -1,21 +1,31 @@
-# Fetching the minified node image on alpine linux
-FROM node:slim
+# Use a specific, stable Node.js version (LTS recommended)
+FROM node:20-slim
 
-# Declaring env
-ENV NODE_ENV development
+# Set environment variables correctly
+ENV NODE_ENV=development
 
-# Setting up the work directory
+# Set the working directory
 WORKDIR /express-docker
 
-# Copying all the files in our project
+# Install required dependencies before running npm install
+RUN apt-get update && apt-get install -y \
+    nano \
+    python3 \
+    python3-pip \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package.json and package-lock.json first for better caching
+COPY package*.json ./
+
+# Install dependencies before copying the whole project
+RUN npm install
+
+# Now copy the entire project
 COPY . .
 
-# Installing nano and other dependencies
-RUN apt-get update && apt-get install -y nano && rm -rf /var/lib/apt/lists/* \
-    && npm install
-
-# Exposing the port
+# Expose the port
 EXPOSE 1328
 
-# Starting our application
+# Start the application
 CMD [ "node", "index.js" ]

@@ -1,30 +1,28 @@
-const {logError} = require("../logger/logger");
+const { logError } = require("../logger/logger");
 const path = require("path");
-const {logAccess} = require("../logger/logger");
-const sqlite3 = require('sqlite3').verbose();
+const { logAccess } = require("../logger/logger");
+const sqlite3 = require("sqlite3").verbose();
 
 const cities = [
     {
         key: "257",
-        value: "Караганда"
+        value: "Караганда",
     },
     {
         key: "259",
-        value: "Темиртау"
+        value: "Темиртау",
     },
     {
         key: "889",
-        value: "Материал от клиента"
-    }
-]
-
+        value: "Материал от клиента",
+    },
+];
 class Db {
-    dbPath = path.resolve(__dirname, '../db/database.db');
+    dbPath = path.resolve(__dirname, "../db/database.db");
 
     createTables() {
         const db = new sqlite3.Database(this.dbPath);
         db.serialize(() => {
-
             // Create users table
             db.run(`
                 CREATE TABLE IF NOT EXISTS users (
@@ -83,6 +81,45 @@ class Db {
         db.close();
     }
 
+    insertOneUserInDb(newUser = {}) {
+        const db = new sqlite3.Database(this.dbPath);
+        // console.log("newUser",newUser);
+
+        try {
+            db.serialize(() => {
+                const stmt = db.prepare(`
+                INSERT INTO users ( id, name, last_name, department_ids, password, city)
+                VALUES ( ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    id = excluded.id,
+                    name = excluded.name,
+                    last_name = excluded.last_name,
+                    department_ids = excluded.department_ids,
+                    password = excluded.password,
+                    city = excluded.city
+                WHERE users.id = excluded.id
+            `);
+
+                stmt.run(
+                    newUser.id,
+                    newUser.name,
+                    newUser.last_name,
+                    newUser.department_ids,
+                    newUser.password,
+                    newUser.city,
+                );
+
+                stmt.finalize();
+            });
+            return true;
+        } catch (error) {
+            logError("DB service insertUsersInDb", error);
+            return false;
+        } finally {
+            db.close();
+        }
+    }
+
     insertUsersInDb(data = []) {
         const db = new sqlite3.Database(this.dbPath);
         try {
@@ -99,10 +136,16 @@ class Db {
 
                 data.forEach((user) => {
                     // Join the department_ids array into a comma-separated string
-                    const departmentIdsString = (user.departments || []).join(',');
+                    const departmentIdsString = (user.departments || []).join(",");
 
                     // Insert or update user into the users table
-                    stmt.run(user.id, user.name, user.last_name, departmentIdsString, user.password);
+                    stmt.run(
+                        user.id,
+                        user.name,
+                        user.last_name,
+                        departmentIdsString,
+                        user.password
+                    );
                 });
 
                 stmt.finalize();
@@ -134,7 +177,7 @@ class Db {
                     params.push(data.last_name);
                 }
                 if (data.departments !== undefined) {
-                    const departmentIdsString = (data.departments || []).join(',');
+                    const departmentIdsString = (data.departments || []).join(",");
                     updates.push("department_ids = ?");
                     params.push(departmentIdsString);
                 }
@@ -145,7 +188,7 @@ class Db {
 
                 // Only proceed if there are updates to apply
                 if (updates.length > 0) {
-                    const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+                    const query = `UPDATE users SET ${updates.join(", ")} WHERE id = ?`;
                     params.push(userId); // Add userId to params
 
                     const stmt = db.prepare(query);
@@ -171,13 +214,21 @@ class Db {
                 `);
 
                 data.forEach((deal) => {
-                    stmt.run(deal.id, deal.title, deal.date_create, deal.assigned_id, cities.find(city => Number(city.key) === Number(deal.city))?.value, deal.service_price);
+                    stmt.run(
+                        deal.id,
+                        deal.title,
+                        deal.date_create,
+                        deal.assigned_id,
+                        cities.find((city) => Number(city.key) === Number(deal.city))
+                            ?.value,
+                        deal.service_price
+                    );
                 });
 
                 stmt.finalize();
             });
             return true;
-        } catch(error) {
+        } catch (error) {
             logError("DB service insertDealsInDb", error);
             return false;
         } finally {
@@ -196,7 +247,7 @@ class Db {
                 data.forEach((product) => {
                     stmt.run(product.id, product.name, (res, err) => {
                         if (err) {
-                            logError("DB service insertProductsInDb run", err)
+                            logError("DB service insertProductsInDb run", err);
                         }
                     });
                 });
@@ -204,7 +255,7 @@ class Db {
                 stmt.finalize();
             });
             return true;
-        } catch(error) {
+        } catch (error) {
             logError("DB service insertProductsInDb", error);
             return false;
         } finally {
@@ -216,13 +267,19 @@ class Db {
         const db = new sqlite3.Database(this.dbPath);
         try {
             db.serialize(() => {
-                    const stmt = db.prepare(`
+                const stmt = db.prepare(`
                     INSERT OR REPLACE INTO deals_products (deal_id, product_id, given_amount, fact_amount, price) 
                     VALUES (?, ?, ?, ?, ?)
                 `);
 
                 data.forEach((dealProduct) => {
-                    stmt.run(dealProduct.deal_id, dealProduct.product_id, dealProduct.given_amount, dealProduct.fact_amount, dealProduct.price);
+                    stmt.run(
+                        dealProduct.deal_id,
+                        dealProduct.product_id,
+                        dealProduct.given_amount,
+                        dealProduct.fact_amount,
+                        dealProduct.price
+                    );
                 });
 
                 stmt.finalize();
@@ -235,7 +292,7 @@ class Db {
             db.close(); // Ensure the database connection is closed
         }
     }
-    
+
     deleteUserById(id) {
         const db = new sqlite3.Database(this.dbPath);
         try {
@@ -248,6 +305,7 @@ class Db {
                     logAccess("DB Service deleteUserById", `User with id ${id} deleted.`);
                 });
             });
+            return true;
         } finally {
             db.close();
         }
@@ -280,7 +338,10 @@ class Db {
                         logError("DB service deleteProductById", err);
                         return false;
                     }
-                    logAccess("DB Service deleteProductById", `Product with id ${id} deleted.`);
+                    logAccess(
+                        "DB Service deleteProductById",
+                        `Product with id ${id} deleted.`
+                    );
                 });
             });
             return true;
@@ -298,7 +359,10 @@ class Db {
                         logError("DB service clearDealsProductsTable", err);
                         return false;
                     }
-                    logAccess("DB Service clearDealsProductsTable", `deals_products table cleared successfully`);
+                    logAccess(
+                        "DB Service clearDealsProductsTable",
+                        `deals_products table cleared successfully`
+                    );
                 });
             });
         } finally {
@@ -370,7 +434,10 @@ class Db {
                         logError("DB service updateDealById", err);
                         return false;
                     }
-                    logAccess("DB Service updateDealById", `Deal with id ${id} updated successfully.`);
+                    logAccess(
+                        "DB Service updateDealById",
+                        `Deal with id ${id} updated successfully.`
+                    );
                 });
             });
             return true;
@@ -410,6 +477,8 @@ class Db {
     }
 
     getDeals(assigned_id = null) {
+        console.log(assigned_id, "id");
+
         const db = new sqlite3.Database(this.dbPath);
         return new Promise((resolve, reject) => {
             try {
@@ -459,6 +528,28 @@ class Db {
         });
     }
 
+    getAllUsers() {
+        const db = new sqlite3.Database(this.dbPath);
+        return new Promise((resolve, reject) => {
+            try {
+                db.all(`SELECT * FROM users`, (err, rows) => {
+                    if (err) {
+                        logError("DB service getAllUsers", err);
+                        reject(err);
+                    } else {
+                        resolve(rows || []); // Возвращаем все строки пользователей, если они есть, иначе пустой массив
+                    }
+                });
+            } catch (error) {
+                logError("DB service getAllUsers", error);
+                reject(error);
+            } finally {
+                db.close();
+            }
+        });
+    }
+
+
     getDealsProducts(deal_id = null) {
         const db = new sqlite3.Database(this.dbPath);
         return new Promise((resolve, reject) => {
@@ -487,7 +578,12 @@ class Db {
         });
     }
 
-    async updateDealProductQuantities({ deal_id = null, product_id = null, fact_amount, given_amount }) {
+    async updateDealProductQuantities({
+                                          deal_id = null,
+                                          product_id = null,
+                                          fact_amount,
+                                          given_amount,
+                                      }) {
         const db = new sqlite3.Database(this.dbPath);
 
         try {
@@ -497,7 +593,7 @@ class Db {
             }
 
             const conditions = [];
-            const values = [fact_amount, given_amount];  // Fact amount will be updated
+            const values = [fact_amount, given_amount]; // Fact amount will be updated
 
             // Add condition based on deal_id and product_id
             if (deal_id) {
@@ -509,28 +605,63 @@ class Db {
                 values.push(product_id);
             }
 
-            const sql = `
-                UPDATE deals_products
-                SET fact_amount = ?, given_amount = ?
-                WHERE ${conditions.join(" AND ")}
-            `;
+            console.log("values", values);
+            // console.log("product_id", product_id);
+            // console.log("deal_id", deal_id);
 
-            db.serialize(() => {
-                db.run(sql, values, (err) => {
+            const sql = `
+        UPDATE deals_products
+        SET fact_amount = ?, given_amount = ?
+        WHERE ${conditions.join(" AND ")}
+      `;
+
+            // console.log(sql);
+
+            //     db.serialize(() => {
+            //       db.run(sql, values, (err) => {
+            //         if (err) {
+            //           logError("DB service updateDealProductQuantities", err);
+            //           return false;
+            //         }
+            //         // SQLite will automatically update 'total' based on the new 'fact_amount'
+            //         logAccess(
+            //           "DB service updateDealProductQuantities",
+            //           `Updated fact_amount in deals_products where ${
+            //             deal_id ? `deal_id = ${deal_id}` : ""
+            //           } ${product_id ? `and product_id = ${product_id}` : ""}`
+            //         );
+            //       });
+            //     });
+            //     return true;
+            //   } catch (error) {
+            //     logError("DB service updateDealProductQuantities", error);
+            //     return false;
+            //   } finally {
+            //     db.close();
+            //   }
+            // }
+            //  Используем Promise для обработки асинхронности
+            await new Promise((resolve, reject) => {
+                db.run(sql, values, function (err) {
                     if (err) {
                         logError("DB service updateDealProductQuantities", err);
-                        return false;
+                        reject(err);
+                    } else {
+                        logAccess(
+                            "DB service updateDealProductQuantities",
+                            `Updated where ${deal_id ? `deal_id = ${deal_id}` : ""} ${product_id ? `product_id = ${product_id}` : ""}`
+                        );
+                        resolve();
                     }
-                    // SQLite will automatically update 'total' based on the new 'fact_amount'
-                    logAccess("DB service updateDealProductQuantities", `Updated fact_amount in deals_products where ${deal_id ? `deal_id = ${deal_id}` : ''} ${product_id ? `and product_id = ${product_id}` : ''}`)
                 });
             });
+
             return true;
         } catch (error) {
             logError("DB service updateDealProductQuantities", error);
             return false;
         } finally {
-            db.close();
+            db.close(); // Закрываем соединение только после завершения запроса
         }
     }
 
@@ -567,11 +698,14 @@ class Db {
         try {
             db.serialize(() => {
                 // Step 1: Remove existing entries that are no longer in the updated list
-                const productIds = products.map(product => product.id).join(",");
-                db.run(`
+                const productIds = products.map((product) => product.id).join(",");
+                db.run(
+                    `
                 DELETE FROM deals_products
                 WHERE deal_id = ? AND product_id NOT IN (${productIds})
-            `, dealId);
+            `,
+                    dealId
+                );
 
                 // Step 2: Insert or update products from the new list
                 const stmt = db.prepare(`
@@ -586,7 +720,8 @@ class Db {
                 products.forEach((product) => {
                     const productId = Number(product.id); // Ensure product.id is treated as a number
                     const givenAmount = Number(product.given_amount);
-                    const factAmount = product.fact_amount !== null ? Number(product.fact_amount) : null; // Handle nulls properly
+                    const factAmount =
+                        product.fact_amount !== null ? Number(product.fact_amount) : null; // Handle nulls properly
 
                     stmt.run(dealId, productId, givenAmount, factAmount);
                 });
@@ -607,13 +742,20 @@ class Db {
         const db = new sqlite3.Database(this.dbPath);
         try {
             db.serialize(() => {
-                db.run(`DELETE FROM deals_products WHERE deal_id = ?`, [dealId], (err) => {
-                    if (err) {
-                        logError("DB service deleteDealsProductsRowByDealId", err);
-                        return false;
+                db.run(
+                    `DELETE FROM deals_products WHERE deal_id = ?`,
+                    [dealId],
+                    (err) => {
+                        if (err) {
+                            logError("DB service deleteDealsProductsRowByDealId", err);
+                            return false;
+                        }
+                        logAccess(
+                            "DB Service deleteDealsProductsRowByDealId",
+                            `deals_products with id ${dealId} deleted.`
+                        );
                     }
-                    logAccess("DB Service deleteDealsProductsRowByDealId", `deals_products with id ${dealId} deleted.`);
-                });
+                );
             });
             return true;
         } finally {
@@ -630,7 +772,10 @@ class Db {
                         logError("DB service clearDealsTable", err);
                         return false;
                     }
-                    logAccess("DB Service clearDealsTable", `deals table cleared successfully`);
+                    logAccess(
+                        "DB Service clearDealsTable",
+                        `deals table cleared successfully`
+                    );
                 });
             });
         } finally {
@@ -647,7 +792,10 @@ class Db {
                         logError("DB service clearProductsTable", err);
                         return false;
                     }
-                    logAccess("DB Service clearProductsTable", `products table cleared successfully`);
+                    logAccess(
+                        "DB Service clearProductsTable",
+                        `products table cleared successfully`
+                    );
                 });
             });
         } finally {
@@ -659,17 +807,14 @@ class Db {
         const db = new sqlite3.Database(this.dbPath);
         return new Promise(async (resolve, reject) => {
             try {
-                db.get(
-                    `SELECT MAX(id) AS max_id FROM deals`,
-                    (err, row) => {
-                        if (err) {
-                            logError("DB service getDealMaxId", err);
-                            reject(err);
-                        } else {
-                            resolve(row || null);
-                        }
+                db.get(`SELECT MAX(id) AS max_id FROM deals`, (err, row) => {
+                    if (err) {
+                        logError("DB service getDealMaxId", err);
+                        reject(err);
+                    } else {
+                        resolve(row || null);
                     }
-                );
+                });
             } catch (error) {
                 logError("DB service getDeals", error);
                 return null;
@@ -678,7 +823,6 @@ class Db {
             }
         });
     }
-
 }
 
 module.exports = Db;

@@ -1,0 +1,33 @@
+02.04.2025, 16:41:45 - Source: /montajniki/add_deal_handler
+Message: Deal 5117 successfully added to db
+
+02.04.2025, 16:41:45 - Source: /montajniki/add_deal_handler/
+Message: Product rows for deal 5117 successfully added to db
+
+02.04.2025, 16:42:28 - Source: /montajniki/update_deal/
+Message: Deal 5117 successfully updated in db
+
+02.04.2025, 16:42:28 - Source: DB Service updateDealById
+Message: Deal with id 5117 updated successfully.
+
+02.04.2025, 16:42:29 - Source: /montajniki/update_deal/
+Message: Deal 5117 successfully updated in bx
+
+02.04.2025, 16:42:29 - Source: /montajniki/update_deal/
+Message: Deal 5117 product rows successfully updated in bx
+
+02.04.2025, 16:42:29 - Source: /montajniki/update_deal/
+Message: Deal 5117 products successfully updated in db
+
+02.04.2025, 16:43:46 - Source: /montajniki/register/
+Message: User Хаккназар Фамилия logged in
+
+02.04.2025, 16:50:33 - Source: /montajniki/add_deal_handler
+Message: Deal 5119 successfully added to db
+
+02.04.2025, 16:50:34 - Source: /montajniki/add_deal_handler/
+Message: Product rows for deal 5119 successfully added to db
+
+02.04.2025, 17:21:22 - Source: /montajniki/register/
+Message: User Хаккназар Фамилия logged in
+

@@ -38,6 +38,22 @@ class UsersService {
             return null;
         }
     }
+
+    async getUserByFilter(filter = {}) {
+        try {
+            const res = await this.bx.call("user.search",
+                {
+                    "select": ["ID", "NAME", "LAST_NAME", "UF_DEPARTMENT"],
+                    "filter": filter,
+                }
+            )
+
+            return res;
+        } catch (error) {
+            logError("ProductsService getUsersList", error);
+            return null;
+        }
+    }
 }
 
 module.exports = UsersService;
