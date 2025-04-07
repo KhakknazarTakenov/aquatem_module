@@ -823,6 +823,27 @@ class Db {
             }
         });
     }
+
+    getDealById(deal_id) {
+        const db = new sqlite3.Database(this.dbPath);
+        return new Promise(async (resolve, reject) => {
+            try {
+                db.get(`SELECT * FROM deals WHERE id = ?`, deal_id,(err, row) => {
+                    if (err) {
+                        logError("DB service getDealMaxId", err);
+                        reject(err);
+                    } else {
+                        resolve(row || null);
+                    }
+                })
+            } catch (error) {
+                logError("DB service getDealById", error);
+                return null;
+            } finally {
+                db.close();
+            }
+        })
+    }
 }
 
 module.exports = Db;

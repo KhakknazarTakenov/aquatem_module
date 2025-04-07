@@ -96,14 +96,14 @@ function haltOnTimedOut(req, res, next) {
 
 app.post(BASE_URL + 'set_user_sign/', express.json({ limit: '20mb' }), async (req, res) => {
     try {
-        const { dealId, image } = req.body; // Получаем dealId и image из тела запроса
+        const { dealId, image, signer_name } = req.body; // Получаем dealId и image из тела запроса
 
         // Проверяем, что данные переданы
-        if (!dealId || !image) {
+        if (!dealId || !image || !signer_name) {
             return res.status(400).json({
                 status: false,
                 status_msg: 'error',
-                message: 'Не переданы dealId или изображение'
+                message: 'Не переданы dealId, изображение или ФИО клиента'
             });
         }
 
@@ -112,8 +112,10 @@ app.post(BASE_URL + 'set_user_sign/', express.json({ limit: '20mb' }), async (re
         // Создаем экземпляр DealsService с твоим вебхуком
         const dealsService = new DealsService(bxLinkDecrypted);
 
+        console.log(signer_name)
         // Вызываем метод для загрузки изображения в пользовательское поле
-        const result = await dealsService.uploadPictureToDealUserField(dealId, image);
+        const result = await dealsService.uploadPictureToDealUserField(dealId, image)
+            && await dealsService.updateDeal(dealId, { "UF_CRM_1744037797656": signer_name });
 
         if (result) {
             res.status(200).json({
@@ -129,7 +131,7 @@ app.post(BASE_URL + 'set_user_sign/', express.json({ limit: '20mb' }), async (re
         res.status(500).json({
             status: false,
             status_msg: 'error',
-            message: 'Сервер вернул ошибку при попытке загрузить изображение в сделку'
+            message: `Сервер вернул ошибку при попытке загрузить изображение в сделку: ${error}`
         });
     }
 });
@@ -1456,6 +1458,7 @@ app.post(BASE_URL + "update_deal_handler/", async (req, res) => {
                 service_price: deal["UF_CRM_1732531742220"] || null,
             };
         });
+        const dbDeal = await db.getDealById(id);
         const updateResult = await db.updateDealById(id, updatedDeal[0]);
         if (updateResult) {
             logAccess(
@@ -1468,8 +1471,10 @@ app.post(BASE_URL + "update_deal_handler/", async (req, res) => {
         const dealsProductsFromDb = await db.getDealsProducts(id);
         // console.log("Строка 1357, Материалы из сделки:", dealsProductsFromDb);
 
+        const productsFromDeal = await dealService.getDealProductRowsByDealId(id);
+
         // запрос в базу данных чтобы доставать товары из сделки (таблица deals_products)
-        const productRows = (await dealService.getDealProductRowsByDealId(id)).map((pr) => {
+        const productRows = productsFromDeal.map((pr) => {
             // if (Number(pr["QUANTITY"]) !== 0) {
             // Ищем соответствующий продукт в dealsProductsFromDb по product_id
             const matchedProduct = dealsProductsFromDb.find(
@@ -1477,14 +1482,20 @@ app.post(BASE_URL + "update_deal_handler/", async (req, res) => {
             );
             // console.log("Строка 1401, matchedProduct - ", matchedProduct);
 
+            /*
+            * Добавить проверку на стадию сделки
+            *
+            * Если is_conducted = false, но обновляем given_amount, если нет, то fact_amount
+            * */
+
             return {
                 product_id: Number(pr["PRODUCT_ID"]),
                 // Если продукт найден, берем fact_amount из базы, иначе null
-                fact_amount: matchedProduct ? Number(pr["QUANTITY"]) : 0,
+                fact_amount: dbDeal.is_conducted ?
+                    matchedProduct ? matchedProduct.fact_amount : Number(pr["QUANTITY"])
+                    : 0,
                 // Если продукт найден, берем given_amount из базы, иначе из pr["QUANTITY"]
-                given_amount: matchedProduct
-                    ? matchedProduct.given_amount
-                    : Number(pr["QUANTITY"]),
+                given_amount: !dbDeal.is_conducted ? Number(pr["QUANTITY"]) : matchedProduct ? matchedProduct.given_amount : Number(pr["QUANTITY"]),
                 price: Number(pr["PRICE"]),
             };
             // }
